@@ -15,12 +15,8 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
 
     address public constant ethAddress = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
-
-    uint32 public periodTime;
-
-    IERC20 public tokenAddress;
-    address  public treasureManager;
-    address  public withdrawManager;
+    address public treasureManager;
+    address public withdrawManager;
 
 
     address[] public tokenWhiteList;
@@ -68,7 +64,7 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
         withdrawManager = _withdrawManager;
     }
 
-    function depositETH(uint256 amount) external payable nonReentrant returns (bool) {
+    function depositETH() external payable nonReentrant returns (bool) {
         (bool sent, ) = payable(address(this)).call{value: msg.value}("");
         if (!sent) {
             return false;
@@ -84,11 +80,11 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
 
     function depositERC20(IERC20 tokenAddress, uint256 amount) external returns (bool) {
         tokenAddress.safeTransferFrom(msg.sender, address(this), amount);
-        tokenBalances[tokenAddress] += amount;
+        tokenBalances[address(tokenAddress)] += amount;
         emit DepositToken(
-            tokenAddress,
+            address(tokenAddress),
             msg.sender,
-            msg.value
+            amount
         );
         return true;
     }
@@ -97,10 +93,10 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
         if (address(tokenAddress) == address(0) || granter == address(0) )   {
             revert IsZeroAddress();
         }
-        granterRewardTokens[tokenAddress] = granter;
+        granterRewardTokens[address(tokenAddress)] = granter;
         granterRewardAmount[granter] = amount;
         emit GrantRewardTokenAmount(
-            tokenAddress,
+            address(tokenAddress),
             granter,
             amount
         );
@@ -110,13 +106,16 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
         for ( uint256 i = 0; i < tokenWhiteList.length; i++ ) {
             address granterAddress = granterRewardTokens[tokenWhiteList[i]];
             if (granterRewardAmount[granterAddress] > 0) {
-                tokenWhiteList[i].safeTransferFrom(address(this), granterAddress, granterRewardAmount[granterAddress]);
+                IERC20(tokenWhiteList[i]).safeTransferFrom(address(this), granterAddress, granterRewardAmount[granterAddress]);
             }
         }
     }
 
     function claimToken(IERC20 tokenAddress) external {
-        address granterAddress = granterRewardTokens[tokenAddress];
+        if(address(tokenAddress) == address(0)) {
+            revert IsZeroAddress();
+        }
+        address granterAddress = granterRewardTokens[address(tokenAddress)];
         if (granterRewardAmount[granterAddress] > 0) {
             tokenAddress.safeTransferFrom(address(this), granterAddress, granterRewardAmount[granterAddress]);
         }
@@ -124,32 +123,35 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
 
     function withdrawETH(address payable withdrawAddress, uint256 amount) external payable onlyWithdrawManager returns (bool) {
         (bool success, ) = withdrawAddress.call{value: amount}("");
-        if (!sent) {
+        if (!success) {
             return false;
         }
         tokenBalances[ethAddress] -= amount;
-        emit DepositToken(
+        emit WithdrawToken(
             ethAddress,
             msg.sender,
             withdrawAddress,
-            msg.value
+            amount
         );
         return true;
     }
 
     function withdrawERC20(IERC20 tokenAddress, address withdrawAddress, uint256 amount) external onlyWithdrawManager returns (bool) {
         tokenAddress.safeTransferFrom(address(this), msg.sender, amount);
-        tokenBalances[tokenAddress] -= amount;
+        tokenBalances[address(tokenAddress)] -= amount;
         emit WithdrawToken(
-            tokenAddress,
+            address(tokenAddress),
             msg.sender,
             withdrawAddress,
-            msg.value
+            amount
         );
         return true;
     }
 
     function setTokenWhiteList(address tokenAddress) external onlyTreasureManager {
+        if(tokenAddress == address(0)) {
+            revert IsZeroAddress();
+        }
         tokenWhiteList.push(tokenAddress);
     }
 }

@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface ITreasureManager {
-    function depositETH(uint256 amount) external payable returns (bool);
+    function depositETH() external payable returns (bool);
     function depositERC20(IERC20 tokenAddress, uint256 amount) external returns (bool);
 
     function grantRewards(IERC20 tokenAddress, address granter, uint256 amount) external;
