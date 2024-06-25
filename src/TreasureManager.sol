@@ -23,9 +23,14 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
     address  public withdrawManager;
 
 
-    mapping(address => uint256) public tokenBalances;
-    mapping(address => mapping(address => uint256)) public granterRewards;
+    address[] public tokenWhiteList;
 
+
+    mapping(address => uint256) public tokenBalances;
+    mapping(address => address) public granterRewardTokens;
+    mapping(address => uint256) public granterRewardAmount;
+
+    error IsZeroAddress();
 
     event DepositToken(
         address indexed tokenAddress,
@@ -35,7 +40,14 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
 
     event WithdrawToken(
         address indexed tokenAddress,
-        address indexed sender,
+        address sender,
+        address withdrawAddress,
+        uint256 amount
+    );
+
+    event GrantRewardTokenAmount(
+        address indexed tokenAddress,
+        address granter,
         uint256 amount
     );
 
@@ -82,23 +94,32 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
     }
 
     function grantRewards(IERC20 tokenAddress, address granter, uint256 amount) external onlyTreasureManager {
-
+        if (address(tokenAddress) == address(0) || granter == address(0) )   {
+            revert IsZeroAddress();
+        }
+        granterRewardTokens[tokenAddress] = granter;
+        granterRewardAmount[granter] = amount;
+        emit GrantRewardTokenAmount(
+            tokenAddress,
+            granter,
+            amount
+        );
     }
 
     function claimTokens() external {
-
+        for ( uint256 i = 0; i < tokenWhiteList.length; i++ ) {
+            address granterAddress = granterRewardTokens[tokenWhiteList[i]];
+            if (granterRewardAmount[granterAddress] > 0) {
+                tokenWhiteList[i].safeTransferFrom(address(this), granterAddress, granterRewardAmount[granterAddress]);
+            }
+        }
     }
 
-    function claimToken() external {
-
-    }
-
-    function getRewardAmountByToken(IERC20 tokenAddress) external {
-
-    }
-
-    function getAllRewardAmount() external {
-
+    function claimToken(IERC20 tokenAddress) external {
+        address granterAddress = granterRewardTokens[tokenAddress];
+        if (granterRewardAmount[granterAddress] > 0) {
+            tokenAddress.safeTransferFrom(address(this), granterAddress, granterRewardAmount[granterAddress]);
+        }
     }
 
     function withdrawETH(address payable withdrawAddress, uint256 amount) external payable onlyWithdrawManager returns (bool) {
@@ -110,6 +131,7 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
         emit DepositToken(
             ethAddress,
             msg.sender,
+            withdrawAddress,
             msg.value
         );
         return true;
@@ -121,8 +143,13 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
         emit WithdrawToken(
             tokenAddress,
             msg.sender,
+            withdrawAddress,
             msg.value
         );
         return true;
+    }
+
+    function setTokenWhiteList(address tokenAddress) external onlyTreasureManager {
+        tokenWhiteList.push(tokenAddress);
     }
 }

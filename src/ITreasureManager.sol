@@ -15,9 +15,10 @@ interface ITreasureManager {
     function grantRewards(IERC20 tokenAddress, address granter, uint256 amount) external;
 
     function claimTokens() external;
-    function claimToken() external;
+    function claimToken(IERC20 tokenAddress) external;
 
-    function getRewardAmountByToken(IERC20 tokenAddress) external;
+    function withdrawETH(address payable withdrawAddress, uint256 amount) external payable returns (bool);
+    function withdrawERC20(IERC20 tokenAddress, address withdrawAddress, uint256 amount) external returns (bool);
 
-    function getAllRewardAmount();
+    function setTokenWhiteList(address tokenAddress) external;
 }
