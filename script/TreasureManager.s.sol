@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Script, console} from "forge-std/Script.sol";
+import {Script} from "forge-std/Script.sol";
 import "../src/TreasureManager.sol";
 import "../src/access/proxy/Proxy.sol";
-
 
 contract TreasureManagerScript is Script {
     TreasureManager public treasureManager;
@@ -15,8 +14,8 @@ contract TreasureManagerScript is Script {
         address admin = msg.sender;
 
         treasureManager = new TreasureManager();
-        proxyTreasureManager = new Proxy(address(treasureManager), address(admin), "");
-        TreasureManager(address(proxyTreasureManager)).initialize(msg.sender, msg.sender);
+        proxyTreasureManager = new Proxy(address(treasureManager), admin, "");
+        treasureManager.initialize(admin, admin);
 
         vm.stopBroadcast();
     }

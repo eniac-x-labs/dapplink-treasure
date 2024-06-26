@@ -64,7 +64,11 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
         withdrawManager = _withdrawManager;
     }
 
-    function depositETH() external payable nonReentrant returns (bool) {
+    receive() external payable {
+        depositETH();
+    }
+    
+    function depositETH() public payable nonReentrant returns (bool) {
         (bool success, ) = payable(address(this)).call{value: msg.value}("");
         if (!success) {
             return false;
@@ -101,7 +105,7 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
             amount
         );
     }
-
+    
     function claimTokens() external {
         for ( uint256 i = 0; i < tokenWhiteList.length; i++ ) {
             address granterAddress = granterRewardTokens[tokenWhiteList[i]];
@@ -126,6 +130,7 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
     }
 
     function withdrawETH(address payable withdrawAddress, uint256 amount) external payable onlyWithdrawManager returns (bool) {
+        require(address(this).balance >= amount, "Insufficient ETH balance in contract");
         (bool success, ) = withdrawAddress.call{value: amount}("");
         if (!success) {
             return false;
