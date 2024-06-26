@@ -65,8 +65,8 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
     }
 
     function depositETH() external payable nonReentrant returns (bool) {
-        (bool sent, ) = payable(address(this)).call{value: msg.value}("");
-        if (!sent) {
+        (bool success, ) = payable(address(this)).call{value: msg.value}("");
+        if (!success) {
             return false;
         }
         tokenBalances[ethAddress] += msg.value;
@@ -105,8 +105,10 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
     function claimTokens() external {
         for ( uint256 i = 0; i < tokenWhiteList.length; i++ ) {
             address granterAddress = granterRewardTokens[tokenWhiteList[i]];
-            if (granterRewardAmount[granterAddress] > 0) {
-                IERC20(tokenWhiteList[i]).safeTransferFrom(address(this), granterAddress, granterRewardAmount[granterAddress]);
+            uint256 grantAmount = granterRewardAmount[granterAddress];
+            if (grantAmount > 0) {
+                IERC20(tokenWhiteList[i]).safeTransferFrom(address(this), granterAddress, grantAmount);
+                tokenBalances[tokenWhiteList[i]] -= grantAmount;
             }
         }
     }
@@ -116,8 +118,10 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
             revert IsZeroAddress();
         }
         address granterAddress = granterRewardTokens[address(tokenAddress)];
-        if (granterRewardAmount[granterAddress] > 0) {
-            tokenAddress.safeTransferFrom(address(this), granterAddress, granterRewardAmount[granterAddress]);
+        uint256 grantAmount = granterRewardAmount[granterAddress];
+        if (grantAmount > 0) {
+            tokenAddress.safeTransferFrom(address(this), granterAddress, grantAmount);
+            tokenBalances[address(tokenAddress)] -= grantAmount;
         }
     }
 
@@ -137,7 +141,7 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
     }
 
     function withdrawERC20(IERC20 tokenAddress, address withdrawAddress, uint256 amount) external onlyWithdrawManager returns (bool) {
-        tokenAddress.safeTransferFrom(address(this), msg.sender, amount);
+        tokenAddress.safeTransferFrom(address(this), withdrawAddress, amount);
         tokenBalances[address(tokenAddress)] -= amount;
         emit WithdrawToken(
             address(tokenAddress),
