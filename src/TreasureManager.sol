@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
@@ -10,7 +11,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "./ITreasureManager.sol";
 
-contract  TreasureManager is Initializable, AccessControlUpgradeable, ReentrancyGuardUpgradeable, ITreasureManager {
+contract  TreasureManager is Initializable, AccessControlUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable, ITreasureManager {
     using SafeERC20 for IERC20;
 
     address public constant ethAddress = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
@@ -45,6 +46,10 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
         address indexed tokenAddress,
         address granter,
         uint256 amount
+    );
+
+    event WithdrawManagerUpdate(
+        address indexed withdrawManager
     );
 
 
@@ -162,5 +167,12 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
             revert IsZeroAddress();
         }
         tokenWhiteList.push(tokenAddress);
+    }
+
+    function setWithdrawManager(address _withdrawManager) external onlyOwner {
+        withdrawManager = _withdrawManager;
+        emit WithdrawManagerUpdate(
+            withdrawManager
+        );
     }
 }
