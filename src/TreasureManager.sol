@@ -102,8 +102,12 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
         if (address(tokenAddress) == address(0) || granter == address(0) )   {
             revert IsZeroAddress();
         }
-        granterRewardTokens[address(tokenAddress)] = granter;
-        granterRewardAmount[granter] = amount;
+        if (granterRewardTokens[address(tokenAddress)] = granter) {
+            granterRewardAmount[granter] += amount;
+        } else {
+            granterRewardTokens[address(tokenAddress)] = granter;
+            granterRewardAmount[granter] = amount;
+        }
         emit GrantRewardTokenAmount(
             address(tokenAddress),
             granter,
