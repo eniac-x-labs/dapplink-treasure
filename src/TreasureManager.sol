@@ -93,7 +93,7 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
         return true;
     }
 
-    function grantRewards(IERC20 tokenAddress, address granter, uint256 amount) external onlyTreasureManager {
+    function grantRewards(address tokenAddress, address granter, uint256 amount) external onlyTreasureManager {
         require(address(tokenAddress) != address(0) && granter != address(0), "Invalid address");
         userRewardAmounts[granter][address(tokenAddress)] += amount;
         emit GrantRewardTokenAmount(address(tokenAddress), granter, amount);
@@ -101,24 +101,36 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
     
     function claimAllTokens() external {
         for (uint256 i = 0; i < tokenWhiteList.length; i++) {
-            uint256 rewardAmount = userRewardAmounts[msg.sender][tokenWhiteList[i]];
-            if(rewardAmount > 0){
-                IERC20(tokenWhiteList[i]).safeTransfer(msg.sender, rewardAmount);
-                userRewardAmounts[msg.sender][tokenWhiteList[i]] = 0;
-                tokenBalances[tokenWhiteList[i]] -= rewardAmount;
+            address tokenAddress = tokenWhiteList[i];
+            uint256 rewardAmount = userRewardAmounts[msg.sender][tokenAddress];
+            if (rewardAmount > 0) {
+                if (tokenAddress == ethAddress) {
+                    (bool success, ) = msg.sender.call{value: rewardAmount}("");
+                    require(success, "ETH transfer failed");
+                } else {
+                    IERC20(tokenAddress).safeTransfer(msg.sender, rewardAmount);
+                }
+                userRewardAmounts[msg.sender][tokenAddress] = 0;
+                tokenBalances[tokenAddress] -= rewardAmount;
             }
         }
     }
 
-    function claimToken(IERC20 tokenAddress) external {
-        require(address(tokenAddress) != address(0), "Invalid token address");
-        uint256 rewardAmount = userRewardAmounts[msg.sender][address(tokenAddress)];
-        require(rewardAmount > 0, "No reward available");
 
-        tokenAddress.safeTransfer(msg.sender, rewardAmount);
-        userRewardAmounts[msg.sender][address(tokenAddress)] = 0;
-        tokenBalances[address(tokenAddress)] -= rewardAmount;
+    function claimToken(address tokenAddress) external {
+        require(tokenAddress != address(0), "Invalid token address");
+        uint256 rewardAmount = userRewardAmounts[msg.sender][tokenAddress];
+        require(rewardAmount > 0, "No reward available");
+        if (tokenAddress == ethAddress) {
+            (bool success, ) = msg.sender.call{value: rewardAmount}("");
+            require(success, "ETH transfer failed");
+        } else {
+            IERC20(tokenAddress).safeTransfer(msg.sender, rewardAmount);
+        }
+        userRewardAmounts[msg.sender][tokenAddress] = 0;
+        tokenBalances[tokenAddress] -= rewardAmount;
     }
+
 
     function withdrawETH(address payable withdrawAddress, uint256 amount) external payable onlyWithdrawManager returns (bool) {
         require(address(this).balance >= amount, "Insufficient ETH balance in contract");
@@ -154,6 +166,10 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
             revert IsZeroAddress();
         }
         tokenWhiteList.push(tokenAddress);
+    }
+
+    function getTokenWhiteList() external view returns (address[] memory) {
+        return tokenWhiteList;
     }
 
     function setWithdrawManager(address _withdrawManager) external onlyOwner {

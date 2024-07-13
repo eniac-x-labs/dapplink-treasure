@@ -47,30 +47,38 @@ contract TreasureManagerTest is Test {
     function testGrantRewards() public {
         vm.prank(treasureManagerAddr);
         uint256 amount = 500;
-        treasureManager.grantRewards(testToken, address(this), amount);
+        treasureManager.grantRewards(address(testToken), address(this), amount);
         assertTrue(treasureManager.userRewardAmounts(address(this), address(testToken)) == amount);
     }
 
     function testClaimAllTokens() public {
+        testDepositETH();
         testDepositERC20();
         vm.prank(treasureManagerAddr);
+        treasureManager.grantRewards(address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE), withdrawManagerAddr, 0.001 ether);
         uint256 amount = 500;
-        treasureManager.grantRewards(testToken, address(this), amount);
+        vm.prank(treasureManagerAddr);
+        treasureManager.grantRewards(address(testToken), withdrawManagerAddr, amount);
         vm.prank(treasureManagerAddr);
         treasureManager.setTokenWhiteList(address(testToken));
-        console.log('treasureManager.tokenBalances:', treasureManager.tokenBalances(address(testToken)));
+        vm.prank(treasureManagerAddr);
+        treasureManager.setTokenWhiteList(address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE));
+        console.log('treasureManager.tokenBalances:', treasureManager.userRewardAmounts(withdrawManagerAddr, address(testToken)));
+        console.log('treasureManager.tokenBalances:', treasureManager.userRewardAmounts(withdrawManagerAddr, address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)));
+        vm.prank(withdrawManagerAddr);
         treasureManager.claimAllTokens();
-        assertTrue(treasureManager.userRewardAmounts(address(this), address(testToken)) == 0);
-        assertTrue(treasureManager.tokenBalances(address(testToken)) == 0);
-        // assertTrue(testToken.balanceOf(address(this)) == amount);
+        console.log('treasureManager.tokenBalances:', treasureManager.userRewardAmounts( withdrawManagerAddr, address(testToken)));
+        console.log('treasureManager.tokenBalances:', treasureManager.userRewardAmounts( withdrawManagerAddr, address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)));
+        assertTrue(treasureManager.userRewardAmounts(withdrawManagerAddr, address(testToken)) == 0);
+        assertTrue(treasureManager.userRewardAmounts(withdrawManagerAddr, address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)) == 0);
     }
 
     function testClaimToken() public {
         testDepositERC20();
         uint256 amount = 500;
         vm.prank(treasureManagerAddr);
-        treasureManager.grantRewards(testToken, address(this), amount);
-        treasureManager.claimToken(testToken);
+        treasureManager.grantRewards(address(testToken), address(this), amount);
+        treasureManager.claimToken(address(testToken));
         assertTrue(treasureManager.userRewardAmounts(address(this), address(testToken)) == 0);
         assertTrue(treasureManager.tokenBalances(address(testToken)) == 0);
         // assertTrue(testToken.balanceOf(address(this)) == amount);
@@ -107,7 +115,7 @@ contract TreasureManagerTest is Test {
         uint256 amount = 500;
         testDepositERC20();
         vm.prank(treasureManagerAddr);
-        treasureManager.grantRewards(testToken, address(this), amount);
+        treasureManager.grantRewards(address(testToken), address(this), amount);
         assertEq(treasureManager.queryReward(address(testToken)), amount);
     }
 
