@@ -11,14 +11,13 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "./ITreasureManager.sol";
 
-contract  TreasureManager is Initializable, AccessControlUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable, ITreasureManager {
+contract TreasureManager is Initializable, AccessControlUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable, ITreasureManager {
     using SafeERC20 for IERC20;
 
     address public constant ethAddress = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
     address public treasureManager;
     address public withdrawManager;
-
 
     address[] public tokenWhiteList;
 
@@ -51,7 +50,6 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
         address indexed withdrawManager
     );
 
-
     modifier onlyTreasureManager() {
         require(msg.sender == address(treasureManager), "TreasureManager.onlyTreasureManager");
         _;
@@ -62,6 +60,9 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
         _;
     }
 
+    constructor() {
+        _disableInitializers();
+    }
 
     function initialize(address _treasureManager, address _withdrawManager) public initializer {
         treasureManager = _treasureManager;
@@ -94,7 +95,7 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
     }
 
     function grantRewards(address tokenAddress, address granter, uint256 amount) external onlyTreasureManager {
-        require(address(tokenAddress) != address(0) && granter != address(0), "Invalid address");
+        require(address(tokenAddress) != address(0) && granter != address(0), "TreasureManager grantRewards: invalid address");
         userRewardAmounts[granter][address(tokenAddress)] += amount;
         emit GrantRewardTokenAmount(address(tokenAddress), granter, amount);
     }
@@ -116,14 +117,13 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
         }
     }
 
-
     function claimToken(address tokenAddress) external {
-        require(tokenAddress != address(0), "Invalid token address");
+        require(tokenAddress != address(0), "TreasureManager claimToken: invalid token address");
         uint256 rewardAmount = userRewardAmounts[msg.sender][tokenAddress];
-        require(rewardAmount > 0, "No reward available");
+        require(rewardAmount > 0, "TreasureManager claimToken: no reward available");
         if (tokenAddress == ethAddress) {
             (bool success, ) = msg.sender.call{value: rewardAmount}("");
-            require(success, "ETH transfer failed");
+            require(success, "TreasureManager claimToken: ETH transfer failed");
         } else {
             IERC20(tokenAddress).safeTransfer(msg.sender, rewardAmount);
         }
@@ -131,9 +131,8 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
         tokenBalances[tokenAddress] -= rewardAmount;
     }
 
-
     function withdrawETH(address payable withdrawAddress, uint256 amount) external payable onlyWithdrawManager returns (bool) {
-        require(address(this).balance >= amount, "Insufficient ETH balance in contract");
+        require(address(this).balance >= amount, "TreasureManager withdrawETH: insufficient ETH balance in contract");
         (bool success, ) = withdrawAddress.call{value: amount}("");
         if (!success) {
             return false;
@@ -149,7 +148,7 @@ contract  TreasureManager is Initializable, AccessControlUpgradeable, Reentrancy
     }
 
     function withdrawERC20(IERC20 tokenAddress, address withdrawAddress, uint256 amount) external onlyWithdrawManager returns (bool) {
-        require(tokenBalances[address(tokenAddress)] >= amount, "Insufficient token balance in contract");
+        require(tokenBalances[address(tokenAddress)] >= amount, "TreasureManager withdrawERC20: Insufficient token balance in contract");
         tokenAddress.safeTransfer(withdrawAddress, amount);
         tokenBalances[address(tokenAddress)] -= amount;
         emit WithdrawToken(
