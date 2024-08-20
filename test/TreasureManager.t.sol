@@ -104,32 +104,32 @@ contract TreasureManagerTest is Test {
         assertTrue(TreasureManager(payable(address(proxyTreasureManager))).tokenBalances(address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)) == 0 ether);
     }
 
-//    function testWithdrawERC20() public {
-//        uint256 amount = 500;
-//        testDepositERC20();
-//        testToken.approve(address(treasureManager), amount);
-//
-//        uint256 initialWithdrawManagerBalance = testToken.balanceOf(withdrawManagerAddr);
-//        assertTrue(proxyTreasureManager.tokenBalances(address(testToken)) == 500);
-//        vm.prank(withdrawManagerAddr);
-//        proxyTreasureManager.withdrawERC20(testToken, address(withdrawManagerAddr), 500);
-//        console.log('testToken.balanceOf', testToken.balanceOf(withdrawManagerAddr));
-//        assertTrue(proxyTreasureManager.tokenBalances(address(testToken)) == 0);
-//        assertEq(testToken.balanceOf(withdrawManagerAddr), initialWithdrawManagerBalance + 500);
-//    }
-//
-//    function testQueryReward() public {
-//        uint256 amount = 500;
-//        testDepositERC20();
-//        vm.prank(treasureManagerAddr);
-//        proxyTreasureManager.grantRewards(address(testToken), address(this), amount);
-//        assertEq(proxyTreasureManager.queryReward(address(testToken)), amount);
-//    }
-//
-//    function testSetWithdrawManager() public {
-//        // Set the message sender to the contract owner
-//        vm.prank(proxyTreasureManager.owner());
-//        proxyTreasureManager.setWithdrawManager(address(0x123));
-//        assertEq(proxyTreasureManager.withdrawManager(), address(0x123));
-//    }
+    function testWithdrawERC20() public {
+        uint256 amount = 500;
+        testDepositERC20();
+        testToken.approve(address(proxyTreasureManager), amount);
+
+        uint256 initialWithdrawManagerBalance = testToken.balanceOf(withdrawManagerAddr);
+        assertTrue(TreasureManager(payable(address(proxyTreasureManager))).tokenBalances(address(testToken)) == 500);
+        vm.prank(withdrawManagerAddr);
+        ITreasureManager(address(proxyTreasureManager)).withdrawERC20(testToken, address(withdrawManagerAddr), 500);
+        console.log('testToken.balanceOf', testToken.balanceOf(withdrawManagerAddr));
+        assertTrue(TreasureManager(payable(address(proxyTreasureManager))).tokenBalances(address(testToken)) == 0);
+        assertEq(testToken.balanceOf(withdrawManagerAddr), initialWithdrawManagerBalance + 500);
+    }
+
+    function testQueryReward() public {
+        uint256 amount = 500;
+        testDepositERC20();
+        vm.prank(treasureManagerAddr);
+        ITreasureManager(address(proxyTreasureManager)).grantRewards(address(testToken), address(this), amount);
+        assertEq(ITreasureManager(address(proxyTreasureManager)).queryReward(address(testToken)), amount);
+    }
+
+    function testSetWithdrawManager() public {
+        // Set the message sender to the contract owner
+        vm.prank(TreasureManager(payable(address(proxyTreasureManager))).owner());
+        ITreasureManager(address(proxyTreasureManager)).setWithdrawManager(address(0x123));
+        assertEq(TreasureManager(payable(address(proxyTreasureManager))).withdrawManager(), address(0x123));
+    }
 }
