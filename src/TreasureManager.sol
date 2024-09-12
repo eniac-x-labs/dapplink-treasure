@@ -100,19 +100,19 @@ contract TreasureManager is Initializable, AccessControlUpgradeable, ReentrancyG
         emit GrantRewardTokenAmount(address(tokenAddress), granter, amount);
     }
     
-    function claimAllTokens() external {
+    function claimAllTokens() external  {
         for (uint256 i = 0; i < tokenWhiteList.length; i++) {
             address tokenAddress = tokenWhiteList[i];
             uint256 rewardAmount = userRewardAmounts[msg.sender][tokenAddress];
             if (rewardAmount > 0) {
+                userRewardAmounts[msg.sender][tokenAddress] = 0;
+                tokenBalances[tokenAddress] -= rewardAmount;
                 if (tokenAddress == ethAddress) {
                     (bool success, ) = msg.sender.call{value: rewardAmount}("");
                     require(success, "ETH transfer failed");
                 } else {
                     IERC20(tokenAddress).safeTransfer(msg.sender, rewardAmount);
                 }
-                userRewardAmounts[msg.sender][tokenAddress] = 0;
-                tokenBalances[tokenAddress] -= rewardAmount;
             }
         }
     }
@@ -121,23 +121,23 @@ contract TreasureManager is Initializable, AccessControlUpgradeable, ReentrancyG
         require(tokenAddress != address(0), "TreasureManager claimToken: invalid token address");
         uint256 rewardAmount = userRewardAmounts[msg.sender][tokenAddress];
         require(rewardAmount > 0, "TreasureManager claimToken: no reward available");
+        userRewardAmounts[msg.sender][tokenAddress] = 0;
+        tokenBalances[tokenAddress] -= rewardAmount;
         if (tokenAddress == ethAddress) {
             (bool success, ) = msg.sender.call{value: rewardAmount}("");
             require(success, "TreasureManager claimToken: ETH transfer failed");
         } else {
             IERC20(tokenAddress).safeTransfer(msg.sender, rewardAmount);
         }
-        userRewardAmounts[msg.sender][tokenAddress] = 0;
-        tokenBalances[tokenAddress] -= rewardAmount;
     }
 
     function withdrawETH(address payable withdrawAddress, uint256 amount) external payable onlyWithdrawManager returns (bool) {
         require(address(this).balance >= amount, "TreasureManager withdrawETH: insufficient ETH balance in contract");
+        tokenBalances[ethAddress] -= amount;
         (bool success, ) = withdrawAddress.call{value: amount}("");
         if (!success) {
             return false;
         }
-        tokenBalances[ethAddress] -= amount;
         emit WithdrawToken(
             ethAddress,
             msg.sender,
@@ -149,8 +149,8 @@ contract TreasureManager is Initializable, AccessControlUpgradeable, ReentrancyG
 
     function withdrawERC20(IERC20 tokenAddress, address withdrawAddress, uint256 amount) external onlyWithdrawManager returns (bool) {
         require(tokenBalances[address(tokenAddress)] >= amount, "TreasureManager withdrawERC20: Insufficient token balance in contract");
-        tokenAddress.safeTransfer(withdrawAddress, amount);
         tokenBalances[address(tokenAddress)] -= amount;
+        tokenAddress.safeTransfer(withdrawAddress, amount);
         emit WithdrawToken(
             address(tokenAddress),
             msg.sender,
