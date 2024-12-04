@@ -26,13 +26,14 @@ contract TreasureManagerScript is Script {
         dappLinkProxyAdmin = new ProxyAdmin(deployerAddress);
         console.log("deploy dappLinkProxyAdmin:", address(dappLinkProxyAdmin));
 
-        treasureManagerContract = new TreasureManager();
+        treasureManagerContract = new TreasureManager(); // 真正的代码逻辑在逻辑合约里面
 
         TransparentUpgradeableProxy proxyTreasureManager = new TransparentUpgradeableProxy(
             address(treasureManagerContract),
             address(dappLinkProxyAdmin),
-            abi.encodeWithSelector(TreasureManager.initialize.selector, treasureManager, withdrawManager)
-        );
+            abi.encodeWithSelector(TreasureManager.initialize.selector, msg.sender, treasureManager, withdrawManager)
+        ); // 状态存储在代理，改变的状态结果是代理
+        console.log("deploy treasureManagerContract:", address(treasureManagerContract));
         console.log("deploy proxyTreasureManager:", address(proxyTreasureManager));
 
         // setup

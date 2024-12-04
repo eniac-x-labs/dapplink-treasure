@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.13;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -24,6 +24,8 @@ contract TreasureManager is Initializable, AccessControlUpgradeable, ReentrancyG
 
     mapping(address => uint256) public tokenBalances;
     mapping(address => mapping(address => uint256)) public userRewardAmounts;
+
+    uint256 public a;
 
     error IsZeroAddress();
 
@@ -64,7 +66,8 @@ contract TreasureManager is Initializable, AccessControlUpgradeable, ReentrancyG
         _disableInitializers();
     }
 
-    function initialize(address _treasureManager, address _withdrawManager) public initializer {
+    function initialize(address initialOwner, address _treasureManager, address _withdrawManager) public initializer {
+        __Ownable_init(initialOwner);
         treasureManager = _treasureManager;
         withdrawManager = _withdrawManager;
     }
@@ -72,7 +75,7 @@ contract TreasureManager is Initializable, AccessControlUpgradeable, ReentrancyG
     receive() external payable {
         depositETH();
     }
-    
+
     function depositETH() public payable nonReentrant returns (bool) {
         tokenBalances[ethAddress] += msg.value;
         emit DepositToken(
@@ -99,7 +102,7 @@ contract TreasureManager is Initializable, AccessControlUpgradeable, ReentrancyG
         userRewardAmounts[granter][address(tokenAddress)] += amount;
         emit GrantRewardTokenAmount(address(tokenAddress), granter, amount);
     }
-    
+
     function claimAllTokens() external  {
         for (uint256 i = 0; i < tokenWhiteList.length; i++) {
             address tokenAddress = tokenWhiteList[i];
