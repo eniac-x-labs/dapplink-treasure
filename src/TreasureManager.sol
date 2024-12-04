@@ -25,8 +25,6 @@ contract TreasureManager is Initializable, AccessControlUpgradeable, ReentrancyG
     mapping(address => uint256) public tokenBalances;
     mapping(address => mapping(address => uint256)) public userRewardAmounts;
 
-    uint256 public a;
-
     error IsZeroAddress();
 
     event DepositToken(
